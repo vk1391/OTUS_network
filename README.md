@@ -41,11 +41,11 @@
  ## Выделенные адреса в г.Чокурдах:
  **Город** | **AS№** | **Устройство** | **Интерфейс** | **ip address** | **Маска подсети**
  --- | --- | --- | --- | --- | -- 
- Чокурдах | - | VPC30 | eth0 | 172.31.0.2 | 255.255.255.252
- Чокурдах | - | VPC | eth0 | 172.31.0.6 | 255.255.255.252
+ Чокурдах | - | VPC30 | eth0 | 172.31.0.2 | 255.255.255.248
+ Чокурдах | - | VPC | eth0 | 172.31.0.3 | 255.255.255.248
  Чокурдах | - | R28 | e0/0 | 172.31.132.1 | 255.255.255.252
  Чокурдах | - | R28 | e0/1 | 172.31.132.5 | 255.255.255.252
- Чокурдах | - | R28 | e0/2 | 172.31.0.1 | 255.255.255.252
+ Чокурдах | - | R28 | e0/2 | 172.31.0.1 | 255.255.255.248
  
  ## Выделенные адреса в г.Лабытнанги:
  **Город** | **AS№** | **Устройство** | **Интерфейс** | **ip address** | **Маска подсети**
@@ -84,3 +84,73 @@
  Киторн | 101 | R22 | e0/0 | 10.110.111.2 | 255.255.255.252
  Киторн | 101 | R22 | e0/1 | 101.10.1.1 | 255.255.255.252
  Киторн | 101 | R22 | e0/2 | 101.10.1.5 | 255.255.255.252
+
+ # Настройка политики маршрутизации в офисе Чокурдах
+  - необходимо настроить:
+  1. Политику маршрутизации для сетей офиса.
+  2. Распределить трафик между двумя линками с провайдером.
+  3. Настроить отслеживание линка через технологию IP SLA.(только для IPv4)
+  4. Настроить для офиса Лабытнанги маршрут по-умолчанию.
+  - Конфигурация маршрутизатора R28:
+```
+interface Ethernet0/0
+ ip address 172.31.132.1 255.255.255.252
+ ip policy route-map TEST
+!
+interface Ethernet0/1
+ ip address 172.31.132.5 255.255.255.252
+ ip policy route-map TEST
+!
+interface Ethernet0/2
+ ip address 172.31.0.1 255.255.255.248
+!
+interface Ethernet0/3
+ no ip address
+ shutdown
+!
+interface Ethernet1/0
+ no ip address
+ shutdown
+!
+interface Ethernet1/1
+ no ip address
+ shutdown
+!
+interface Ethernet1/2
+ no ip address
+ shutdown
+!
+interface Ethernet1/3
+ no ip address
+ shutdown
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+ip route 0.0.0.0 0.0.0.0 172.31.132.2 name default
+!
+ip access-list standard ACL1
+ permit 172.31.0.2
+ip access-list standard ACL2
+ permit 172.31.0.3
+!
+ip sla 1
+ icmp-echo 172.31.132.2 source-ip 172.31.132.1
+ frequency 10
+ip sla schedule 1 life forever start-time now
+ip sla 2
+ icmp-echo 172.31.132.6 source-ip 172.31.132.5
+ frequency 11
+!
+route-map TEST permit 10
+ match ip address ACL1
+ set ip next-hop 172.31.132.2
+!
+route-map TEST permit 20
+ match ip address ACL2
+ set ip next-hop 172.31.132.6
+!
+route-map TEST deny 30
+```
