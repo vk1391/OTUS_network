@@ -95,14 +95,13 @@
 ```
 interface Ethernet0/0
  ip address 172.31.132.1 255.255.255.252
- ip policy route-map TEST
 !
 interface Ethernet0/1
  ip address 172.31.132.5 255.255.255.252
- ip policy route-map TEST
 !
 interface Ethernet0/2
  ip address 172.31.0.1 255.255.255.248
+ ip policy route-map TEST
 !
 interface Ethernet0/3
  no ip address
@@ -123,18 +122,19 @@ interface Ethernet1/2
 interface Ethernet1/3
  no ip address
  shutdown
-!
+!         
 ip forward-protocol nd
 !
 !
 no ip http server
 no ip http secure-server
-ip route 0.0.0.0 0.0.0.0 172.31.132.2 name default
+ip route 0.0.0.0 0.0.0.0 172.31.132.2 10
+ip route 0.0.0.0 0.0.0.0 172.31.132.6 10
 !
 ip access-list standard ACL1
- permit 172.31.0.2
-ip access-list standard ACL2
  permit 172.31.0.3
+ip access-list standard ACL2
+ permit 172.31.0.2
 !
 ip sla 1
  icmp-echo 172.31.132.2 source-ip 172.31.132.1
@@ -143,14 +143,116 @@ ip sla schedule 1 life forever start-time now
 ip sla 2
  icmp-echo 172.31.132.6 source-ip 172.31.132.5
  frequency 11
+ip sla schedule 2 life forever start-time now
 !
 route-map TEST permit 10
  match ip address ACL1
- set ip next-hop 172.31.132.2
+ set ip next-hop 172.31.132.6
 !
 route-map TEST permit 20
  match ip address ACL2
- set ip next-hop 172.31.132.6
+ set ip next-hop 172.31.132.2
 !
 route-map TEST deny 30
+```
+- Конфигурация маршрутизатора R27:
+```
+interface Ethernet0/0
+ ip address 10.111.112.2 255.255.255.252
+!
+interface Ethernet0/1
+ no ip address
+ shutdown
+!         
+interface Ethernet0/2
+ no ip address
+ shutdown
+!
+interface Ethernet0/3
+ no ip address
+ shutdown
+!
+interface Ethernet1/0
+ no ip address
+ shutdown
+!
+interface Ethernet1/1
+ no ip address
+ shutdown
+!
+interface Ethernet1/2
+ no ip address
+ shutdown
+!
+interface Ethernet1/3
+ no ip address
+ shutdown 
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+ip route 0.0.0.0 0.0.0.0 10.111.112.1 name default
+```
+- Результат:
+1. VPC30:
+```
+VPCS> sh ip
+
+NAME        : VPCS[1]
+IP/MASK     : 172.31.0.2/30
+GATEWAY     : 172.31.0.1
+DNS         : 
+MAC         : 00:50:79:66:68:1e
+LPORT       : 20000
+RHOST:PORT  : 127.0.0.1:30000
+MTU         : 1500
+
+VPCS> trace 10.111.112.2
+trace to 10.111.112.2, 8 hops max, press Ctrl+C to stop
+ 1   172.31.0.1   2.373 ms  1.776 ms  1.486 ms
+ 2   172.31.132.2   20.109 ms  3.058 ms  4.091 ms
+ 3   11.1.110.14   8.481 ms  3.485 ms  4.360 ms
+ 4   *10.111.112.2   4.331 ms
+```
+2. VPC31:
+```
+VPCS> sh ip
+
+NAME        : VPCS[1]
+IP/MASK     : 172.31.0.3/29
+GATEWAY     : 172.31.0.1
+DNS         : 
+MAC         : 00:50:79:66:68:06
+LPORT       : 20000
+RHOST:PORT  : 127.0.0.1:30000
+MTU         : 1500
+
+VPCS> trace 10.111.112.2
+trace to 10.111.112.2, 8 hops max, press Ctrl+C to stop
+ 1   172.31.0.1   1.102 ms  1.145 ms  1.606 ms
+ 2   172.31.132.6   3.060 ms  3.625 ms  3.083 ms
+ 3   *10.111.112.2   5.945 ms
+```
+3. Результат IP SLA на R28:
+```
+Router#show ip sla statistics 
+IPSLAs Latest Operation Statistics
+
+IPSLA operation id: 1
+Latest RTT: 1 milliseconds
+Latest operation start time: 10:08:10 UTC Tue Jul 9 2024
+Latest operation return code: OK
+Number of successes: 74
+Number of failures: 1
+Operation time to live: Forever
+
+IPSLA operation id: 2
+Latest RTT: 2 milliseconds
+Latest operation start time: 10:08:11 UTC Tue Jul 9 2024
+Latest operation return code: OK
+Number of successes: 46
+Number of failures: 0
+Operation time to live: Forever
 ```
