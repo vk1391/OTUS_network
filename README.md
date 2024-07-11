@@ -468,15 +468,13 @@ router ospf 1
 - Таблица маршрутизации R19:
  ```
 O*IA  0.0.0.0/0 [110/11] via 172.16.1.17, 01:09:58, Ethernet0/0
-      10.0.0.0/8 is variably subnetted, 2 subnets, 2 masks
-C        10.0.0.0/30 is directly connected, Ethernet0/1
-L        10.0.0.1/32 is directly connected, Ethernet0/1
       19.0.0.0/32 is subnetted, 1 subnets
 C        19.19.19.19 is directly connected, Loopback0
       172.16.0.0/16 is variably subnetted, 2 subnets, 2 masks
 C        172.16.1.16/30 is directly connected, Ethernet0/0
 L        172.16.1.18/32 is directly connected, Ethernet0/0
 ```
+В таблице маршрутизации присутствует только маршрут по умолчанию,соответственно условие задачи выполнено
 - Конфигурация R20:
 ```
 interface Loopback0
@@ -548,3 +546,4 @@ O IA     172.16.1.12/30 [110/20] via 172.16.1.21, 01:04:41, Ethernet0/0
 C        172.16.1.20/30 is directly connected, Ethernet0/0
 L        172.16.1.22/32 is directly connected, Ethernet0/0
 ```
+Как видим, сеть 172.16.1.16/30 отсутствует, соответсвенно условие поставленной задачи выполнено.
