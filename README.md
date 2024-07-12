@@ -549,3 +549,219 @@ C        172.16.1.20/30 is directly connected, Ethernet0/0
 L        172.16.1.22/32 is directly connected, Ethernet0/0
 ```
 Как видим, сеть 172.16.1.16/30 отсутствует, соответсвенно условие поставленной задачи выполнено.
+
+# Настройка маршрутизации в офисе Триада
+- Необходимо выполнить следующие условия:
+1. Настроите IS-IS в ISP Триада.
+2. R23 и R25 находятся в зоне 2222.
+3. R24 находится в зоне 24.
+4. R26 находится в зоне 26.
+
+![alt-dtp](https://github.com/vk1391/OTUS_network/blob/main/isis.jpg)
+
+Конфигурация R23:
+```
+interface Ethernet0/0
+ ip address 101.10.1.6 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-1
+!         
+interface Ethernet0/1
+ ip address 11.1.110.1 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-2-only
+!
+interface Ethernet0/2
+ ip address 11.1.110.5 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-2-only
+!
+interface Ethernet0/3
+ no ip address
+ shutdown
+!
+interface Ethernet1/0
+ no ip address
+ shutdown
+!
+interface Ethernet1/1
+ no ip address
+ shutdown
+!
+interface Ethernet1/2
+ no ip address
+ shutdown
+!
+interface Ethernet1/3
+ no ip address
+ shutdown
+!
+router isis 1
+ net 49.2222.0000.0000.0000.0023.00
+```
+
+- таблица соседства isis R23:
+```
+Tag 1:
+System Id      Type Interface   IP Address      State Holdtime Circuit Id
+Router         L2   Et0/2       11.1.110.6      UP    8        Router.03          
+Router         L2   Et0/1       11.1.110.2      UP    8        Router.01  
+```
+- Конфигурация R24:
+```
+interface Ethernet0/0
+ ip address 172.110.0.2 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-1
+!         
+interface Ethernet0/1
+ ip address 11.1.110.9 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-2-only
+!
+interface Ethernet0/2
+ ip address 11.1.110.6 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-2-only
+!
+interface Ethernet0/3
+ ip address 10.100.110.2 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-1
+!
+interface Ethernet1/0
+ no ip address
+ shutdown
+!
+interface Ethernet1/1
+ no ip address
+ shutdown
+!         
+interface Ethernet1/2
+ no ip address
+ shutdown
+!
+interface Ethernet1/3
+ no ip address
+ shutdown
+!
+router isis 1
+ net 49.0024.0000.0000.0000.0024.00
+```
+- таблица соседства isis R23:
+```
+Tag 1:
+System Id      Type Interface   IP Address      State Holdtime Circuit Id
+Router         L2   Et0/2       11.1.110.5      UP    25       Router.03          
+Router         L2   Et0/1       11.1.110.10     UP    9        Router.01
+```
+- Конфигурация R25:
+```
+interface Ethernet0/0
+ ip address 11.1.110.2 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-2-only
+!         
+interface Ethernet0/1
+ ip address 10.111.112.1 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-1
+!
+interface Ethernet0/2
+ ip address 11.1.110.14 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-2-only
+!
+interface Ethernet0/3
+ ip address 172.31.132.6 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-1
+!
+interface Ethernet1/0
+ no ip address
+ shutdown
+!
+interface Ethernet1/1
+ no ip address
+ shutdown
+!         
+interface Ethernet1/2
+ no ip address
+ shutdown
+!
+interface Ethernet1/3
+ no ip address
+ shutdown
+!
+router isis 1
+ net 49.2222.0000.0000.0000.0025.00
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+ip route 172.31.0.0 255.255.255.248 172.31.132.5
+```
+- таблица соседства isis R25:
+```
+Tag 1:
+System Id      Type Interface   IP Address      State Holdtime Circuit Id
+Router         L2   Et0/0       11.1.110.1      UP    29       Router.01          
+Router         L2   Et0/2       11.1.110.13     UP    6        Router.03
+```
+- Конфигурация R26:
+```
+interface Ethernet0/0
+ ip address 11.1.110.10 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-2-only
+!         
+interface Ethernet0/1
+ ip address 172.31.132.2 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-1
+!
+interface Ethernet0/2
+ ip address 11.1.110.13 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-2-only
+!
+interface Ethernet0/3
+ ip address 10.100.110.6 255.255.255.252
+ ip router isis 1
+ isis circuit-type level-1
+!
+interface Ethernet1/0
+ no ip address
+ shutdown
+!
+interface Ethernet1/1
+ no ip address
+ shutdown
+!         
+interface Ethernet1/2
+ no ip address
+ shutdown
+!
+interface Ethernet1/3
+ no ip address
+ shutdown
+!
+router isis 1
+ net 49.0026.0000.0000.0000.0026.00
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+ip route 172.31.0.0 255.255.255.248 172.31.132.1
+```
+- таблица соседства isis R26:
+```
+Tag 1:
+System Id      Type Interface   IP Address      State Holdtime Circuit Id
+Router         L2   Et0/0       11.1.110.9      UP    28       Router.01          
+Router         L2   Et0/2       11.1.110.14     UP    25       Router.03
+```
