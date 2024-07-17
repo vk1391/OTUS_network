@@ -765,3 +765,299 @@ System Id      Type Interface   IP Address      State Holdtime Circuit Id
 Router         L2   Et0/0       11.1.110.9      UP    28       Router.01          
 Router         L2   Et0/2       11.1.110.14     UP    25       Router.03
 ```
+
+# Настройка маршрутизации в офисе Санкт-Петербург
+- Необходимо выполнить следующие условия:
+1. В офисе С.-Петербург настроить EIGRP.
+2. R32 получает только маршрут по умолчанию.
+3. R16-17 анонсируют только суммарные префиксы.
+4. Использовать EIGRP named-mode для настройки сети.
+5. Настройка осуществляется одновременно для IPv4 и IPv6.
+
+![alt-dtp](https://github.com/vk1391/OTUS_network/blob/main/eigrp.jpg)
+
+- Конфигурация R16:
+```
+interface Loopback0
+ ip address 16.16.16.16 255.255.255.255
+!
+interface Ethernet0/0
+ ip address 172.20.0.5 255.255.255.252
+!
+interface Ethernet0/1
+ ip address 172.20.1.2 255.255.255.252
+ ipv6 address FE80::16 link-local
+!
+interface Ethernet0/2
+ no ip address
+!
+interface Ethernet0/3
+ ip address 172.20.1.9 255.255.255.252
+ ipv6 address FE80::16 link-local
+!
+!
+router eigrp SPB
+ !
+ address-family ipv4 unicast autonomous-system 1
+  !
+  af-interface Ethernet0/1
+   summary-address 172.20.0.0 255.255.254.0
+   authentication key-chain SPB
+  exit-af-interface
+  !       
+  af-interface Ethernet0/3
+   authentication key-chain SPB
+  exit-af-interface
+  !
+  topology base
+   distribute-list prefix DefR out Ethernet0/3
+  exit-af-topology
+  network 172.20.0.0
+  eigrp router-id 16.16.16.16
+ exit-address-family
+ !
+ address-family ipv6 unicast autonomous-system 1
+  !
+  topology base
+  exit-af-topology
+  eigrp router-id 16.16.16.16
+ exit-address-family
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+!
+!
+ip prefix-list DefR seq 10 permit 0.0.0.0/0
+```
+- таблица сосдства eigrp R16:
+```
+Router#sh ip eigrp neighbors 
+EIGRP-IPv4 VR(SPB) Address-Family Neighbors for AS(1)
+H   Address                 Interface              Hold Uptime   SRTT   RTO  Q  Seq
+                                                   (sec)         (ms)       Cnt Num
+1   172.20.1.10             Et0/3                    14 01:08:59   11   100  0  5
+0   172.20.1.1              Et0/1                    11 01:14:40 1284  5000  0  7
+
+Router#sh ipv6 eigrp neighbors 
+EIGRP-IPv6 VR(SPB) Address-Family Neighbors for AS(1)
+H   Address                 Interface              Hold Uptime   SRTT   RTO  Q  Seq
+                                                   (sec)         (ms)       Cnt Num
+1   Link-local address:     Et0/3                    10 00:12:31    6   100  0  1
+    FE80::32
+0   Link-local address:     Et0/1                    12 00:14:21   11   100  0  1
+    FE80::18
+```
+- Конфигурация R17:
+```
+interface Loopback0
+ ip address 17.17.17.17 255.255.255.255
+!
+interface Ethernet0/0
+ ip address 172.20.0.1 255.255.255.252
+!
+interface Ethernet0/1
+ ip address 172.20.1.6 255.255.255.252
+ ipv6 address FE80::17 link-local
+!
+interface Ethernet0/2
+ no ip address
+ shutdown
+!
+interface Ethernet0/3
+ no ip address
+ shutdown
+!
+!
+router eigrp SPB
+ !
+ address-family ipv4 unicast autonomous-system 1
+  !
+  af-interface Ethernet0/1
+   summary-address 172.20.0.0 255.255.254.0
+   authentication key-chain SPB
+  exit-af-interface
+  !
+  af-interface Ethernet0/0
+   summary-address 172.20.0.0 255.255.254.0
+  exit-af-interface
+  !
+  network 172.20.0.0
+  network 172.20.0.0 0.0.0.3
+  eigrp router-id 17.17.17.17
+ exit-address-family
+ !
+ address-family ipv6 unicast autonomous-system 1
+  !
+  topology base
+  exit-af-topology
+  eigrp router-id 17.17.17.17
+ exit-address-family
+!
+ip forward-protocol nd
+```
+- таблица сосдства eigrp R17:
+```
+EIGRP-IPv4 VR(SPB) Address-Family Neighbors for AS(1)
+H   Address                 Interface              Hold Uptime   SRTT   RTO  Q  Seq
+                                                   (sec)         (ms)       Cnt Num
+0   172.20.1.5              Et0/1                    14 01:01:02    6   100  0  14
+Router#sh ipv6 eigrp neighbors 
+EIGRP-IPv6 VR(SPB) Address-Family Neighbors for AS(1)
+H   Address                 Interface              Hold Uptime   SRTT   RTO  Q  Seq
+                                                   (sec)         (ms)       Cnt Num
+0   Link-local address:     Et0/1                    10 01:25:21    1  3000  0  2
+    FE80::18
+```
+- Конфигурация R18:
+```
+interface Loopback0
+ ip address 18.18.18.18 255.255.255.255
+!
+interface Ethernet0/0
+ ip address 172.20.1.1 255.255.255.252
+ ipv6 address FE80::18 link-local
+!
+interface Ethernet0/1
+ ip address 172.20.1.5 255.255.255.252
+ ipv6 address FE80::18 link-local
+!
+interface Ethernet0/2
+ ip address 10.100.110.1 255.255.255.252
+!
+interface Ethernet0/3
+ ip address 10.100.110.5 255.255.255.252
+!
+!
+router eigrp SPB
+ !
+ address-family ipv4 unicast autonomous-system 1
+  !
+  af-interface Ethernet0/0
+   summary-address 172.20.0.0 255.255.254.0
+   authentication key-chain SPB
+  exit-af-interface
+  !       
+  af-interface Ethernet0/1
+   summary-address 172.20.0.0 255.255.254.0
+   authentication key-chain SPB
+  exit-af-interface
+  !
+  topology base
+   redistribute static
+  exit-af-topology
+  network 172.20.0.0
+  eigrp router-id 18.18.18.18
+ exit-address-family
+ !
+ address-family ipv6 unicast autonomous-system 1
+  !
+  topology base
+  exit-af-topology
+  eigrp router-id 18.18.18.18
+ exit-address-family
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+ip route 0.0.0.0 0.0.0.0 10.100.110.2
+```
+
+
+- таблица сосдства eigrp R18:
+```
+Router#sh ip eigrp neighbors 
+EIGRP-IPv4 VR(SPB) Address-Family Neighbors for AS(1)
+H   Address                 Interface              Hold Uptime   SRTT   RTO  Q  Seq
+                                                   (sec)         (ms)       Cnt Num
+1   172.20.1.6              Et0/1                    14 01:04:43   12   100  0  8
+0   172.20.1.2              Et0/0                    10 02:29:02    5   100  0  19
+Router#sh ipv6 eig
+Router#sh ipv6 eigrp ne
+Router#sh ipv6 eigrp neighbors 
+EIGRP-IPv6 VR(SPB) Address-Family Neighbors for AS(1)
+H   Address                 Interface              Hold Uptime   SRTT   RTO  Q  Seq
+                                                   (sec)         (ms)       Cnt Num
+1   Link-local address:     Et0/1                    13 01:27:55    1  3000  0  1
+    FE80::17
+0   Link-local address:     Et0/0                    10 01:28:27   11   100  0  1
+    FE80::16
+```
+- Конфигурация R32:
+```
+interface Loopback0
+ ip address 32.32.32.32 255.255.255.255
+!
+interface Ethernet0/0
+ ip address 172.20.1.10 255.255.255.252
+ ipv6 address FE80::32 link-local
+!
+interface Ethernet0/1
+ no ip address
+ shutdown
+!
+interface Ethernet0/2
+ no ip address
+ shutdown
+!
+interface Ethernet0/3
+ no ip address
+ shutdown
+!
+!
+router eigrp SPB
+ !
+ address-family ipv4 unicast autonomous-system 1
+  !
+  af-interface Ethernet0/0
+   authentication key-chain SPB
+  exit-af-interface
+  !
+  topology base
+  exit-af-topology
+  network 172.20.0.0
+  eigrp router-id 32.32.32.32
+ exit-address-family
+ !
+ address-family ipv6 unicast autonomous-system 1
+  !
+  topology base
+  exit-af-topology
+  eigrp router-id 32.32.32.32
+ exit-address-family
+!
+ip forward-protocol nd
+!
+!
+no ip http server
+no ip http secure-server
+```
+- таблица сосдства eigrp R32:
+```
+Router#sh ip eigrp neighbors 
+EIGRP-IPv4 VR(SPB) Address-Family Neighbors for AS(1)
+H   Address                 Interface              Hold Uptime   SRTT   RTO  Q  Seq
+                                                   (sec)         (ms)       Cnt Num
+0   172.20.1.9              Et0/0                    12 02:24:55    9   100  0  15
+Router#sh ipv6 eigrp neighbors 
+EIGRP-IPv6 VR(SPB) Address-Family Neighbors for AS(1)
+H   Address                 Interface              Hold Uptime   SRTT   RTO  Q  Seq
+                                                   (sec)         (ms)       Cnt Num
+0   Link-local address:     Et0/0                    11 01:28:12   13   100  0  2
+    FE80::16
+```
+- таблица маршрутизации R32:
+```
+D*EX  0.0.0.0/0 [170/2048000] via 172.20.1.9, 02:26:09, Ethernet0/0
+      32.0.0.0/32 is subnetted, 1 subnets
+C        32.32.32.32 is directly connected, Loopback0
+      172.20.0.0/16 is variably subnetted, 2 subnets, 2 masks
+C        172.20.1.8/30 is directly connected, Ethernet0/0
+L        172.20.1.10/32 is directly connected, Ethernet0/0
+```
+В таблице маршрутизатора R32 отсутвует маршрут кроме маршрута по умолчанию, что удовлетворяет требованиям
+  
