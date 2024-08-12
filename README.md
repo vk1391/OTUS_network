@@ -1068,7 +1068,7 @@ L        172.20.1.10/32 is directly connected, Ethernet0/0
   3. Настроите eBGP между Ламас и Триада.
   4. Настроите eBGP между офисом С.-Петербург и провайдером Триада.
 
-![alt-dtp](https://github.com/vk1391/OTUS_network/blob/main/bgp1.jpg)
+![alt-dtp](https://github.com/vk1391/OTUS_network/blob/main/BGP1.jpg)
 каждый из роутеров имеет loopback address типа: R14 - 14.14.14.14/32,R15 - 15.15.15.15/32 и.т.д
 
 - Конфигурация BGP R14:
