@@ -1071,7 +1071,7 @@ L        172.20.1.10/32 is directly connected, Ethernet0/0
 ![alt-dtp](https://github.com/vk1391/OTUS_network/blob/main/BGP1.jpg)
 каждый из роутеров имеет loopback address типа: R14 - 14.14.14.14/32,R15 - 15.15.15.15/32 и.т.д
 
-- Конфигурация BGP R14:
+- Конфигурация BGP R14(Москва):
 ```
 Router#sh run | sec bgp
 router bgp 1001
@@ -1079,7 +1079,7 @@ router bgp 1001
  network 14.14.14.14 mask 255.255.255.255
  neighbor 10.110.111.2 remote-as 101
 ```
-- Конфигурация BGP R15:
+- Конфигурация BGP R15(Москва):
 ```
 Router#sh run | sec bgp
 router bgp 1001
@@ -1174,7 +1174,7 @@ L        172.20.1.5/32 is directly connected, Ethernet0/1
       172.110.0.0/30 is subnetted, 1 subnets
 B        172.110.0.0 [20/0] via 10.100.110.2, 00:24:19
 ```
-- Ping R14:
+- Ping R14 с R18:
 ```
 Router#ping 14.14.14.14
 Type escape sequence to abort.
@@ -1228,7 +1228,7 @@ L        172.16.1.17/32 is directly connected, Ethernet0/3
       172.110.0.0/30 is subnetted, 1 subnets
 B        172.110.0.0 [20/0] via 10.110.111.2, 00:27:21
 ```
-- Ping R18:
+- Ping R18 c R14:
 ```
 Router# ping 18.18.18.18
 Type escape sequence to abort.
