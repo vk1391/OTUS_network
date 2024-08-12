@@ -1061,3 +1061,178 @@ L        172.20.1.10/32 is directly connected, Ethernet0/0
 ```
 В таблице маршрутизатора R32 отсутвует маршрут кроме маршрута по умолчанию, что удовлетворяет требованиям
   
+# BGP основы
+- необходимо выполнить следующие условия:
+  1. Настроите eBGP между офисом Москва и двумя провайдерами - Киторн и Ламас.
+  2. Настроите eBGP между провайдерами Киторн и Ламас.
+  3. Настроите eBGP между Ламас и Триада.
+  4. Настроите eBGP между офисом С.-Петербург и провайдером Триада.
+
+![alt-dtp](https://github.com/vk1391/OTUS_network/blob/main/bgp1.jpg)
+каждый из роутеров имеет loopback address типа: R14 - 14.14.14.14/32,R15 - 15.15.15.15/32 и.т.д
+
+- Конфигурация BGP R14:
+```
+Router#sh run | sec bgp
+router bgp 1001
+ bgp log-neighbor-changes
+ network 14.14.14.14 mask 255.255.255.255
+ neighbor 10.110.111.2 remote-as 101
+```
+- Конфигурация BGP R15:
+```
+Router#sh run | sec bgp
+router bgp 1001
+ bgp log-neighbor-changes
+ network 15.15.15.15 mask 255.255.255.255
+ neighbor 10.110.111.6 remote-as 301
+```
+- Конфигурация BGP R21(Ламас):
+```
+Router#sh run | sec bgp
+router bgp 301
+ bgp log-neighbor-changes
+ network 21.21.21.21 mask 255.255.255.255
+ redistribute connected
+ neighbor 10.110.111.5 remote-as 1001
+ neighbor 101.10.1.1 remote-as 101
+ neighbor 172.110.0.2 remote-as 520
+```
+- Конфигурация BGP R22(Киторн):
+```
+Router#sh run | sec bgp
+router bgp 101
+ bgp log-neighbor-changes
+ network 22.22.22.22 mask 255.255.255.255
+ redistribute connected
+ neighbor 10.110.111.1 remote-as 1001
+ neighbor 101.10.1.2 remote-as 301
+```
+- Конфигурация BGP R24(Триада):
+```
+router bgp 520
+ bgp log-neighbor-changes
+ network 24.24.24.24 mask 255.255.255.255
+ redistribute connected
+ neighbor 10.100.110.1 remote-as 2042
+ neighbor 172.110.0.1 remote-as 301
+```
+- Конфигурация BGP R18(СПБ):
+```
+router bgp 2042
+ bgp log-neighbor-changes
+ network 18.18.18.18 mask 255.255.255.255
+ neighbor 10.100.110.2 remote-as 520
+```
+- таблица маршрутизации R18:
+```
+Router#sh ip route
+Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP
+       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area 
+       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2
+       E1 - OSPF external type 1, E2 - OSPF external type 2
+       i - IS-IS, su - IS-IS summary, L1 - IS-IS level-1, L2 - IS-IS level-2
+       ia - IS-IS inter area, * - candidate default, U - per-user static route
+       o - ODR, P - periodic downloaded static route, H - NHRP, l - LISP
+       a - application route
+       + - replicated route, % - next hop override
+
+Gateway of last resort is 10.100.110.2 to network 0.0.0.0
+
+S*    0.0.0.0/0 [1/0] via 10.100.110.2
+      10.0.0.0/8 is variably subnetted, 6 subnets, 2 masks
+C        10.100.110.0/30 is directly connected, Ethernet0/2
+L        10.100.110.1/32 is directly connected, Ethernet0/2
+C        10.100.110.4/30 is directly connected, Ethernet0/3
+L        10.100.110.5/32 is directly connected, Ethernet0/3
+B        10.110.111.0/30 [20/0] via 10.100.110.2, 00:25:39
+B        10.110.111.4/30 [20/0] via 10.100.110.2, 00:26:10
+      11.0.0.0/30 is subnetted, 2 subnets
+B        11.1.110.4 [20/0] via 10.100.110.2, 00:24:19
+B        11.1.110.8 [20/0] via 10.100.110.2, 00:24:19
+      14.0.0.0/32 is subnetted, 1 subnets
+B        14.14.14.14 [20/0] via 10.100.110.2, 00:39:28
+      15.0.0.0/32 is subnetted, 1 subnets
+B        15.15.15.15 [20/0] via 10.100.110.2, 00:39:28
+      18.0.0.0/32 is subnetted, 1 subnets
+C        18.18.18.18 is directly connected, Loopback0
+      21.0.0.0/32 is subnetted, 1 subnets
+B        21.21.21.21 [20/0] via 10.100.110.2, 00:39:28
+      22.0.0.0/32 is subnetted, 1 subnets
+B        22.22.22.22 [20/0] via 10.100.110.2, 00:39:28
+      24.0.0.0/32 is subnetted, 1 subnets
+B        24.24.24.24 [20/0] via 10.100.110.2, 00:39:28
+      101.0.0.0/30 is subnetted, 2 subnets
+B        101.10.1.0 [20/0] via 10.100.110.2, 00:26:10
+B        101.10.1.4 [20/0] via 10.100.110.2, 00:25:39
+      172.20.0.0/16 is variably subnetted, 5 subnets, 3 masks
+D        172.20.0.0/23 is a summary, 02:20:04, Null0
+C        172.20.1.0/30 is directly connected, Ethernet0/0
+L        172.20.1.1/32 is directly connected, Ethernet0/0
+C        172.20.1.4/30 is directly connected, Ethernet0/1
+L        172.20.1.5/32 is directly connected, Ethernet0/1
+      172.110.0.0/30 is subnetted, 1 subnets
+B        172.110.0.0 [20/0] via 10.100.110.2, 00:24:19
+```
+- Ping R14:
+```
+Router#ping 14.14.14.14
+Type escape sequence to abort.
+Sending 5, 100-byte ICMP Echos to 14.14.14.14, timeout is 2 seconds:
+!!!!!
+Success rate is 100 percent (5/5), round-trip min/avg/max = 2/4/8 ms
+```
+- таблица маршрутизации R14:
+```
+Router#sh ip route
+Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP
+       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area 
+       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2
+       E1 - OSPF external type 1, E2 - OSPF external type 2
+       i - IS-IS, su - IS-IS summary, L1 - IS-IS level-1, L2 - IS-IS level-2
+       ia - IS-IS inter area, * - candidate default, U - per-user static route
+       o - ODR, P - periodic downloaded static route, H - NHRP, l - LISP
+       a - application route
+       + - replicated route, % - next hop override
+
+Gateway of last resort is not set
+
+      10.0.0.0/8 is variably subnetted, 4 subnets, 2 masks
+B        10.100.110.0/30 [20/0] via 10.110.111.2, 00:25:47
+C        10.110.111.0/30 is directly connected, Ethernet0/2
+L        10.110.111.1/32 is directly connected, Ethernet0/2
+B        10.110.111.4/30 [20/0] via 10.110.111.2, 00:27:21
+      11.0.0.0/30 is subnetted, 2 subnets
+B        11.1.110.4 [20/0] via 10.110.111.2, 00:25:47
+B        11.1.110.8 [20/0] via 10.110.111.2, 00:25:47
+      14.0.0.0/32 is subnetted, 1 subnets
+C        14.14.14.14 is directly connected, Loopback0
+      18.0.0.0/32 is subnetted, 1 subnets
+B        18.18.18.18 [20/0] via 10.110.111.2, 00:40:25
+      21.0.0.0/32 is subnetted, 1 subnets
+B        21.21.21.21 [20/0] via 10.110.111.2, 00:53:23
+      22.0.0.0/32 is subnetted, 1 subnets
+B        22.22.22.22 [20/0] via 10.110.111.2, 00:52:52
+      24.0.0.0/32 is subnetted, 1 subnets
+B        24.24.24.24 [20/0] via 10.110.111.2, 00:44:10
+      101.0.0.0/30 is subnetted, 2 subnets
+B        101.10.1.0 [20/0] via 10.110.111.2, 00:27:21
+B        101.10.1.4 [20/0] via 10.110.111.2, 00:27:21
+      172.16.0.0/16 is variably subnetted, 6 subnets, 2 masks
+C        172.16.1.0/30 is directly connected, Ethernet0/0
+L        172.16.1.2/32 is directly connected, Ethernet0/0
+C        172.16.1.8/30 is directly connected, Ethernet0/1
+L        172.16.1.9/32 is directly connected, Ethernet0/1
+C        172.16.1.16/30 is directly connected, Ethernet0/3
+L        172.16.1.17/32 is directly connected, Ethernet0/3
+      172.110.0.0/30 is subnetted, 1 subnets
+B        172.110.0.0 [20/0] via 10.110.111.2, 00:27:21
+```
+- Ping R18:
+```
+Router# ping 18.18.18.18
+Type escape sequence to abort.
+Sending 5, 100-byte ICMP Echos to 18.18.18.18, timeout is 2 seconds:
+!!!!!
+Success rate is 100 percent (5/5), round-trip min/avg/max = 4/8/25 ms
+```
