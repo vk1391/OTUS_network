@@ -1094,7 +1094,6 @@ Router#sh run | sec bgp
 router bgp 301
  bgp log-neighbor-changes
  network 21.21.21.21 mask 255.255.255.255
- redistribute connected
  neighbor 10.110.111.5 remote-as 1001
  neighbor 101.10.1.1 remote-as 101
  neighbor 172.110.0.2 remote-as 520
@@ -1105,7 +1104,6 @@ Router#sh run | sec bgp
 router bgp 101
  bgp log-neighbor-changes
  network 22.22.22.22 mask 255.255.255.255
- redistribute connected
  neighbor 10.110.111.1 remote-as 1001
  neighbor 101.10.1.2 remote-as 301
 ```
@@ -1114,7 +1112,6 @@ router bgp 101
 router bgp 520
  bgp log-neighbor-changes
  network 24.24.24.24 mask 255.255.255.255
- redistribute connected
  neighbor 10.100.110.1 remote-as 2042
  neighbor 172.110.0.1 remote-as 301
 ```
@@ -1177,9 +1174,10 @@ B        172.110.0.0 [20/0] via 10.100.110.2, 00:24:19
 ```
 - Ping R14 с R18:
 ```
-Router#ping 14.14.14.14
+Router#ping 14.14.14.14 source 18.18.18.18
 Type escape sequence to abort.
 Sending 5, 100-byte ICMP Echos to 14.14.14.14, timeout is 2 seconds:
+Packet sent with a source address of 18.18.18.18
 !!!!!
 Success rate is 100 percent (5/5), round-trip min/avg/max = 2/4/8 ms
 ```
@@ -1231,9 +1229,10 @@ B        172.110.0.0 [20/0] via 10.110.111.2, 00:27:21
 ```
 - Ping R18 c R14:
 ```
-Router# ping 18.18.18.18
+Router# ping 18.18.18.18 source 14.14.14.14
 Type escape sequence to abort.
 Sending 5, 100-byte ICMP Echos to 18.18.18.18, timeout is 2 seconds:
+Packet sent with a source address of 14.14.14.14
 !!!!!
 Success rate is 100 percent (5/5), round-trip min/avg/max = 4/8/25 ms
 ```
