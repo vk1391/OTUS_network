@@ -1266,6 +1266,7 @@ Success rate is 100 percent (5/5), round-trip min/avg/max = 4/8/25 ms
 
 ![alt-dtp](https://github.com/vk1391/OTUS_network/blob/main/BGP2.jpg)
 
+1. Настроите iBGP в офисом Москва между маршрутизаторами R14 и R15.
 - Конфигурация BGP R14:
 ```
 Router#sh run | sec bgp
