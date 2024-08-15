@@ -1409,5 +1409,40 @@ RPKI validation codes: V valid, I invalid, N Not found
 ```
 Как видно из таблицы ,best выбирается тот путь у которого путь до конечного узла меньше
 Таким образоим входящий и исходящий трафик для офиса в Москве, при условии что маршрутизаторы R14 и R15 работают, будет идти через Ламас на маршрутизатор R15
+4. Настройте офиса С.-Петербург так, чтобы трафик до любого офиса распределялся по двум линкам одновременно.
+Для реализации этого условия необходимо включить multipath на маршрутизаторе R18
+- конфигурация BGP R18:
+```
+Router#sh run | sec bgp
+router bgp 2042
+ bgp log-neighbor-changes
+ bgp bestpath as-path multipath-relax
+ network 18.18.18.18 mask 255.255.255.255
+ neighbor 10.100.110.2 remote-as 520
+ neighbor 10.100.110.6 remote-as 520
+ maximum-paths 2
+```
+- таблица маршрутов BGP R18:
+```
+Router#sh ip bgp
+BGP table version is 30, local router ID is 18.18.18.18
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal, 
+              r RIB-failure, S Stale, m multipath, b backup-path, f RT-Filter, 
+              x best-external, a additional-path, c RIB-compressed, 
+Origin codes: i - IGP, e - EGP, ? - incomplete
+RPKI validation codes: V valid, I invalid, N Not found
 
+     Network          Next Hop            Metric LocPrf Weight Path
+ *m  14.14.14.14/32   10.100.110.6                           0 520 301 1001 i
+ *>                   10.100.110.2                           0 520 301 1001 i
+ *m  15.15.15.15/32   10.100.110.6                           0 520 301 1001 i
+ *>                   10.100.110.2                           0 520 301 1001 i
+ *>  18.18.18.18/32   0.0.0.0                  0         32768 i
+ *m  21.21.21.21/32   10.100.110.6                           0 520 301 i
+ *>                   10.100.110.2                           0 520 301 i
+ *m  22.22.22.22/32   10.100.110.6                           0 520 101 i
+ *>                   10.100.110.2                           0 520 101 i
+ *m  24.24.24.24/32   10.100.110.6                           0 520 i
+ *>                   10.100.110.2             0             0 520 i
+```
 
