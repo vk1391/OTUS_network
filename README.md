@@ -1236,3 +1236,178 @@ Packet sent with a source address of 14.14.14.14
 !!!!!
 Success rate is 100 percent (5/5), round-trip min/avg/max = 4/8/25 ms
 ```
+# Масштабируемость и дизайн iBGP
+ - необходимо выполнить следующие условия:
+  1. Настроите iBGP в офисом Москва между маршрутизаторами R14 и R15.
+  2. Настроите iBGP в провайдере Триада, с использованием RR
+  3. Настройте офиса Москва так, чтобы приоритетным провайдером стал Ламас.
+  4. Настройте офиса С.-Петербург так, чтобы трафик до любого офиса распределялся по двум линкам одновременно.
+  5. Все сети в лабораторной работе должны иметь IP связность.
+
+![alt-dtp](https://github.com/vk1391/OTUS_network/blob/main/BGP2.jpg)
+
+- Конфигурация BGP R14:
+```
+Router#sh run | sec bgp
+router bgp 1001
+ bgp log-neighbor-changes
+ network 14.14.14.14 mask 255.255.255.255
+ neighbor 10.110.111.2 remote-as 101
+ neighbor 10.110.111.2 route-map RM-LAMAS-OUT out
+ neighbor 172.16.1.26 remote-as 1001
+route-map RM-LAMAS-OUT permit 10
+ set as-path prepend 1001 1001
+```
+- Конфигурация BGP R15:
+```
+router bgp 1001
+ bgp log-neighbor-changes
+ network 15.15.15.15 mask 255.255.255.255
+ neighbor 10.110.111.6 remote-as 301
+ neighbor 10.110.111.6 route-map RM-LAMAS-IN in
+ neighbor 172.16.1.25 remote-as 1001
+route-map RM-LAMAS-IN permit 10
+ set local-preference 110
+```
+- таблица соседства BGP R14:
+```
+Router#sh ip bgp sum
+BGP router identifier 14.14.14.14, local AS number 1001
+BGP table version is 21, main routing table version 21
+6 network entries using 840 bytes of memory
+10 path entries using 800 bytes of memory
+10/6 BGP path/bestpath attribute entries using 1440 bytes of memory
+8 BGP AS-PATH entries using 192 bytes of memory
+0 BGP route-map cache entries using 0 bytes of memory
+0 BGP filter-list cache entries using 0 bytes of memory
+BGP using 3272 total bytes of memory
+BGP activity 8/2 prefixes, 15/5 paths, scan interval 60 secs
+
+Neighbor        V           AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
+10.110.111.2    4          101    1810    1796       21    0    0 1d03h           4
+172.16.1.26     4         1001    1786    1787       21    0    0 1d02h           5
+```
+2. Настроите iBGP в провайдере Триада, с использованием RR
+В качестве Route-reflector был выбран R23
+ - Конфигурация BGP R23:
+ ```
+Router#sh run | sec bgp
+router bgp 520
+ bgp log-neighbor-changes
+ neighbor IBGP peer-group
+ neighbor IBGP remote-as 520
+ neighbor IBGP update-source Loopback0
+ neighbor IBGP route-reflector-client
+ neighbor IBGP next-hop-self
+ neighbor 24.24.24.24 peer-group IBGP
+ neighbor 25.25.25.25 peer-group IBGP
+ neighbor 26.26.26.26 peer-group IBGP
+ neighbor 101.10.1.5 remote-as 101
+```
+- Конфигурация BGP R24:
+```
+router bgp 520
+ bgp router-id 24.24.24.24
+ bgp log-neighbor-changes
+ network 24.24.24.24 mask 255.255.255.255
+ neighbor 10.100.110.1 remote-as 2042
+ neighbor 23.23.23.23 remote-as 520
+ neighbor 23.23.23.23 update-source Loopback0
+ neighbor 23.23.23.23 next-hop-self
+ neighbor 172.110.0.1 remote-as 301
+```
+- Конфигурация BGP R25:
+```
+Router#sh run | sec bgp
+router bgp 520
+ bgp log-neighbor-changes
+ neighbor 23.23.23.23 remote-as 520
+ neighbor 23.23.23.23 update-source Loopback0
+ neighbor 23.23.23.23 next-hop-self
+```
+- Конфигурация BGP R26:
+```
+Router(config-router)#do sh run | sec bgp
+router bgp 520
+ bgp log-neighbor-changes
+ neighbor 10.100.110.5 remote-as 2042
+ neighbor 23.23.23.23 remote-as 520
+ neighbor 23.23.23.23 update-source Loopback0
+ neighbor 23.23.23.23 next-hop-self
+```
+- Таблица соседства R23:
+```
+Router#sh ip bgp sum
+BGP router identifier 23.23.23.23, local AS number 520
+BGP table version is 18, main routing table version 18
+6 network entries using 840 bytes of memory
+10 path entries using 800 bytes of memory
+7/5 BGP path/bestpath attribute entries using 1008 bytes of memory
+6 BGP AS-PATH entries using 144 bytes of memory
+0 BGP route-map cache entries using 0 bytes of memory
+0 BGP filter-list cache entries using 0 bytes of memory
+BGP using 2792 total bytes of memory
+BGP activity 6/0 prefixes, 19/9 paths, scan interval 60 secs
+
+Neighbor        V           AS MsgRcvd MsgSent   TblVer  InQ OutQ Up/Down  State/PfxRcd
+24.24.24.24     4          520     109     108       18    0    0 01:29:18        5
+25.25.25.25     4          520     101     108       18    0    0 01:29:18        0
+26.26.26.26     4          520     103     111       18    0    0 01:29:18        1
+101.10.1.5      4          101     178     173       18    0    0 02:29:14        4
+```
+3.Настройте офиса Москва так, чтобы приоритетным провайдером стал Ламас.
+ - На маршрутизаторах R14 и R15 были созданы route map,для R15 на входящий трафик,для R14 на исходящий трафик
+ - Для R15 был увеличен local-preference в сторону Ламас
+ - таблица маршрутов BGP R15:
+```
+Router#sh ip bgp
+BGP table version is 20, local router ID is 15.15.15.15
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal, 
+              r RIB-failure, S Stale, m multipath, b backup-path, f RT-Filter, 
+              x best-external, a additional-path, c RIB-compressed, 
+Origin codes: i - IGP, e - EGP, ? - incomplete
+RPKI validation codes: V valid, I invalid, N Not found
+
+     Network          Next Hop            Metric LocPrf Weight Path
+ *>i 14.14.14.14/32   172.16.1.25              0    100      0 i
+ *>  15.15.15.15/32   0.0.0.0                  0         32768 i
+ * i 18.18.18.18/32   10.110.111.2             0    100      0 101 520 2042 i
+ *>                   10.110.111.6                  110      0 301 520 2042 i
+ * i 21.21.21.21/32   10.110.111.2             0    100      0 101 301 i
+ *>                   10.110.111.6             0    110      0 301 i
+ * i 22.22.22.22/32   10.110.111.2             0    100      0 101 i
+ *>                   10.110.111.6                  110      0 301 101 i
+ * i 24.24.24.24/32   10.110.111.2             0    100      0 101 520 i
+ *>                   10.110.111.6                  110      0 301 520 i
+```
+Из таблицы видно что маршруты до сетей с наибольшим префиксом помечены как best(>) и ,соответственно, будут приорететны
+- для маршрутизатора R14 был сделан prepend as-path в сторону Киторн,для того что бы искуственно увеличить кол-во хопов до заданного узла
+- таблица маршрутов BGP R22:
+```
+Router#sh ip bgp
+BGP table version is 24, local router ID is 22.22.22.22
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal, 
+              r RIB-failure, S Stale, m multipath, b backup-path, f RT-Filter, 
+              x best-external, a additional-path, c RIB-compressed, 
+Origin codes: i - IGP, e - EGP, ? - incomplete
+RPKI validation codes: V valid, I invalid, N Not found
+
+     Network          Next Hop            Metric LocPrf Weight Path
+ *   14.14.14.14/32   101.10.1.6                             0 520 301 1001 i
+ *>                   101.10.1.2                             0 301 1001 i
+ *                    10.110.111.1             0             0 1001 1001 1001 i
+ *   15.15.15.15/32   101.10.1.6                             0 520 301 1001 i
+ *>                   101.10.1.2                             0 301 1001 i
+ *                    10.110.111.1                           0 1001 1001 1001 i
+ *>  18.18.18.18/32   101.10.1.6                             0 520 2042 i
+ *                    101.10.1.2                             0 301 520 2042 i
+ *   21.21.21.21/32   101.10.1.6                             0 520 301 i
+ *>                   101.10.1.2               0             0 301 i
+ *>  22.22.22.22/32   0.0.0.0                  0         32768 i
+ *>  24.24.24.24/32   101.10.1.6                             0 520 i
+ *                    101.10.1.2                             0 301 520 i
+```
+Как видно из таблицы ,best выбирается тот путь у которого путь до конечного узла меньше
+Таким образоим входящий и исходящий трафик для офиса в Москве, при условии что маршрутизаторы R14 и R15 работают, будет идти через Ламас на маршрутизатор R15
+
+
