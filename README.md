@@ -561,6 +561,11 @@ L        172.16.1.22/32 is directly connected, Ethernet0/0
 
 Конфигурация R23:
 ```
+interface Loopback0
+ ip address 23.23.23.23 255.255.255.255
+ ip router isis 1
+ isis circuit-type level-2-only
+!
 interface Ethernet0/0
  ip address 101.10.1.6 255.255.255.252
  ip router isis 1
@@ -609,6 +614,11 @@ Router         L2   Et0/1       11.1.110.2      UP    8        Router.01
 ```
 - Конфигурация R24:
 ```
+interface Loopback0
+ ip address 224.24.24.24 255.255.255.255
+ ip router isis 1
+ isis circuit-type level-2-only
+!
 interface Ethernet0/0
  ip address 172.110.0.2 255.255.255.252
  ip router isis 1
@@ -648,7 +658,7 @@ interface Ethernet1/3
 router isis 1
  net 49.0024.0000.0000.0000.0024.00
 ```
-- таблица соседства isis R23:
+- таблица соседства isis R24:
 ```
 Tag 1:
 System Id      Type Interface   IP Address      State Holdtime Circuit Id
@@ -657,6 +667,11 @@ Router         L2   Et0/1       11.1.110.10     UP    9        Router.01
 ```
 - Конфигурация R25:
 ```
+interface Loopback0
+ ip address 25.25.25.25 255.255.255.255
+ ip router isis 1
+ isis circuit-type level-2-only
+!
 interface Ethernet0/0
  ip address 11.1.110.2 255.255.255.252
  ip router isis 1
@@ -712,6 +727,11 @@ Router         L2   Et0/2       11.1.110.13     UP    6        Router.03
 ```
 - Конфигурация R26:
 ```
+interface Loopback0
+ ip address 26.26.26.26 255.255.255.255
+ ip router isis 1
+ isis circuit-type level-2-only
+!
 interface Ethernet0/0
  ip address 11.1.110.10 255.255.255.252
  ip router isis 1
