@@ -1468,3 +1468,102 @@ RPKI validation codes: V valid, I invalid, N Not found
  *>                   10.100.110.2             0             0 520 i
 ```
 
+# BGP. Фильтрация
+ - необходимо выполнить следующие условия:
+   1. Настроить фильтрацию в офисе Москва так, чтобы не появилось транзитного трафика(As-path).
+   2. Настроить фильтрацию в офисе С.-Петербург так, чтобы не появилось транзитного трафика(Prefix-list).
+   3. Настроить провайдера Киторн так, чтобы в офис Москва отдавался только маршрут по умолчанию.
+   4. Настроить провайдера Ламас так, чтобы в офис Москва отдавался только маршрут по умолчанию и префикс офиса С.-Петербург.
+
+![alt-dtp](https://github.com/vk1391/OTUS_network/blob/main/BGP2.jpg)
+
+1.Конфигурация BGP R14:
+```
+Router#sh run | sec access-list
+ip as-path access-list 1 permit ^$
+Router#sh run | sec bgp        
+router bgp 1001
+ bgp log-neighbor-changes
+ network 14.14.14.14 mask 255.255.255.255
+ neighbor 10.110.111.2 remote-as 101
+ neighbor 10.110.111.2 route-map RM-LAMAS-OUT out
+ neighbor 10.110.111.2 filter-list 1 out
+ neighbor 172.16.1.26 remote-as 1001
+```
+- Конфигурация BGP R15:
+```
+Router#sh run | sec access-list
+ip as-path access-list 1 permit ^$
+Router#sh run | sec bgp
+router bgp 1001
+ bgp log-neighbor-changes
+ network 15.15.15.15 mask 255.255.255.255
+ neighbor 10.110.111.6 remote-as 301
+ neighbor 10.110.111.6 route-map RM-LAMAS-IN in
+ neighbor 10.110.111.6 filter-list 1 out
+ neighbor 172.16.1.25 remote-as 1001
+```
+- таблица bgp R21:
+```
+Router#sh ip bgp
+BGP table version is 21, local router ID is 21.21.21.21
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal, 
+              r RIB-failure, S Stale, m multipath, b backup-path, f RT-Filter, 
+              x best-external, a additional-path, c RIB-compressed, 
+Origin codes: i - IGP, e - EGP, ? - incomplete
+RPKI validation codes: V valid, I invalid, N Not found
+
+     Network          Next Hop            Metric LocPrf Weight Path
+ *>  14.14.14.14/32   10.110.111.5                           0 1001 i
+ *>  15.15.15.15/32   10.110.111.5             0             0 1001 i
+ *   18.18.18.18/32   101.10.1.1                             0 101 520 2042 i
+ *>                   172.110.0.2                            0 520 2042 i
+ *>  21.21.21.21/32   0.0.0.0                  0         32768 i
+ *   22.22.22.22/32   172.110.0.2                            0 520 101 i
+ *>                   101.10.1.1               0             0 101 i
+ *   24.24.24.24/32   101.10.1.1                             0 101 520 i
+ *>                   172.110.0.2              0             0 520 i
+```
+- таблица bgp R22:
+```
+Router#sh ip bgp
+BGP table version is 25, local router ID is 22.22.22.22
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal, 
+              r RIB-failure, S Stale, m multipath, b backup-path, f RT-Filter, 
+              x best-external, a additional-path, c RIB-compressed, 
+Origin codes: i - IGP, e - EGP, ? - incomplete
+RPKI validation codes: V valid, I invalid, N Not found
+
+     Network          Next Hop            Metric LocPrf Weight Path
+ *   14.14.14.14/32   101.10.1.6                             0 520 301 1001 i
+ *>                   101.10.1.2                             0 301 1001 i
+ *                    10.110.111.1             0             0 1001 1001 1001 i
+ *   15.15.15.15/32   101.10.1.6                             0 520 301 1001 i
+ *                    10.110.111.1                           0 1001 1001 1001 i
+ *>                   101.10.1.2                             0 301 1001 i
+ *>  18.18.18.18/32   101.10.1.6                             0 520 2042 i
+ *                    101.10.1.2                             0 301 520 2042 i
+ *   21.21.21.21/32   101.10.1.6                             0 520 301 i
+ *>                   101.10.1.2               0             0 301 i
+ *>  22.22.22.22/32   0.0.0.0                  0         32768 i
+ *>  24.24.24.24/32   101.10.1.6                             0 520 i
+ *                    101.10.1.2                             0 301 520 i
+```
+2. Конфигурация BGP R18:
+```
+Router#sh run | sec ip prefix-list
+ip prefix-list NO-TRAN seq 5 permit 18.18.18.18/32
+Router#sh run | sec bgp
+router bgp 2042
+ bgp log-neighbor-changes
+ bgp bestpath as-path multipath-relax
+ network 18.18.18.18 mask 255.255.255.255
+ neighbor 10.100.110.2 remote-as 520
+ neighbor 10.100.110.2 prefix-list NO-TRAN out
+ neighbor 10.100.110.6 remote-as 520
+ neighbor 10.100.110.6 prefix-list NO-TRAN out
+ maximum-paths 2
+```
+
+
+   
