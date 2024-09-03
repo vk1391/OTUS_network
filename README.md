@@ -1564,6 +1564,115 @@ router bgp 2042
  neighbor 10.100.110.6 prefix-list NO-TRAN out
  maximum-paths 2
 ```
+3-4. 3. Настроить провайдера Киторн так, чтобы в офис Москва отдавался только маршрут по умолчанию.<br>
+     4. Настроить провайдера Ламас так, чтобы в офис Москва отдавался только маршрут по умолчанию и префикс офиса С.-Петербург.
+- Конфигурация BGP R22:
+```
+Router#sh run | sec route-map
+ neighbor 10.110.111.1 route-map REJ out
+route-map REJ deny 10
+Router#sh run | sec bgp      
+router bgp 101
+ bgp log-neighbor-changes
+ network 22.22.22.22 mask 255.255.255.255
+ neighbor 10.110.111.1 remote-as 1001
+ neighbor 10.110.111.1 default-originate
+ neighbor 10.110.111.1 route-map REJ out
+ neighbor 101.10.1.2 remote-as 301
+ neighbor 101.10.1.6 remote-as 520
+```
+- Конфигурация BGP R21:
+```
+Router#sh run | sec route-map
+ neighbor 10.110.111.5 route-map MSK out
+route-map MSK permit 10
+ match as-path 1
+Router#sh run | sec access   
+Router#sh run | sec access-list
+ip as-path access-list 1 permit _2042$
+Router#sh run | sec route-map  
+ neighbor 10.110.111.5 route-map MSK out
+route-map MSK permit 10
+ match as-path 1
+Router#sh run | sec bgp
+router bgp 301
+ bgp log-neighbor-changes
+ network 21.21.21.21 mask 255.255.255.255
+ neighbor 10.110.111.5 remote-as 1001
+ neighbor 10.110.111.5 default-originate
+ neighbor 10.110.111.5 route-map MSK out
+ neighbor 101.10.1.1 remote-as 101
+ neighbor 172.110.0.2 remote-as 520
+```
+- таблица анонсированных маршрутов R21:
+```
+Router#sh ip bgp neighbors 10.110.111.5 advertised-routes 
+BGP table version is 9, local router ID is 21.21.21.21
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal, 
+              r RIB-failure, S Stale, m multipath, b backup-path, f RT-Filter, 
+              x best-external, a additional-path, c RIB-compressed, 
+Origin codes: i - IGP, e - EGP, ? - incomplete
+RPKI validation codes: V valid, I invalid, N Not found
+
+Originating default network 0.0.0.0
+
+     Network          Next Hop            Metric LocPrf Weight Path
+ *>  18.18.18.18/32   172.110.0.2                            0 520 2042 i
+
+Total number of prefixes 1
+```
+- таблица маршрутов BGP R15:
+```
+Router#sh ip bgp
+BGP table version is 45, local router ID is 15.15.15.15
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal, 
+              r RIB-failure, S Stale, m multipath, b backup-path, f RT-Filter, 
+              x best-external, a additional-path, c RIB-compressed, 
+Origin codes: i - IGP, e - EGP, ? - incomplete
+RPKI validation codes: V valid, I invalid, N Not found
+
+     Network          Next Hop            Metric LocPrf Weight Path
+ r>  0.0.0.0          10.110.111.6                  110      0 301 i
+ *>i 14.14.14.14/32   172.16.1.25              0    100      0 i
+ *>  15.15.15.15/32   0.0.0.0                  0         32768 i
+ *>  18.18.18.18/32   10.110.111.6                  110      0 301 520 2042 i
+```
+- таблица анонсированных маршрутов R22:
+```
+Router#sh ip bgp neighbors 10.110.111.1 advertised-routes 
+BGP table version is 23, local router ID is 22.22.22.22
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal, 
+              r RIB-failure, S Stale, m multipath, b backup-path, f RT-Filter, 
+              x best-external, a additional-path, c RIB-compressed, 
+Origin codes: i - IGP, e - EGP, ? - incomplete
+RPKI validation codes: V valid, I invalid, N Not found
+
+Originating default network 0.0.0.0
+
+     Network          Next Hop            Metric LocPrf Weight Path
+
+Total number of prefixes 0
+```
+- таблица BGP R14:
+```
+Router#
+*Aug 30 07:38:01.654: %IPRT-3-RIB_LOOP: Resolution loop formed by routes in RIB
+Router#sh ip bgp
+BGP table version is 127, local router ID is 14.14.14.14
+Status codes: s suppressed, d damped, h history, * valid, > best, i - internal, 
+              r RIB-failure, S Stale, m multipath, b backup-path, f RT-Filter, 
+              x best-external, a additional-path, c RIB-compressed, 
+Origin codes: i - IGP, e - EGP, ? - incomplete
+RPKI validation codes: V valid, I invalid, N Not found
+
+     Network          Next Hop            Metric LocPrf Weight Path
+ * i 0.0.0.0          10.110.111.6             0    110      0 301 i
+ *>                   10.110.111.2                           0 101 i
+ *>  14.14.14.14/32   0.0.0.0                  0         32768 i
+ *>i 15.15.15.15/32   172.16.1.26              0    100      0 i
+ * i 18.18.18.18/32   10.110.111.6             0    110      0 301 520 2042 i
+```
+
 
 
    
